@@ -2,10 +2,10 @@ import sets, re
 from Tkconstants import LAST
 
 ## reference file where you get some info
-ref_file = 'C:/p4/stg_win60/git-llvm-tot/llvm/test/CodeGen/AMDGPU/kernel-metadata.s'
+ref_file = 'C:/p4/stg_win60/git-llvm-tot/llvm/test/CodeGen/AMDGPU/runtime-metadata.s'
 
 ## the file you want to modify
-target_file = 'C:/p4/stg_win60/git-llvm-tot/llvm/test/CodeGen/AMDGPU/kernel-metadata.ll'
+target_file = 'C:/p4/stg_win60/git-llvm-tot/llvm/test/CodeGen/AMDGPU/runtime-metadata.ll'
 
 ## read file to a list
 def read_file(fn):
@@ -71,7 +71,8 @@ def dump_list(content):
         print line
         
 ## replace the ranges1 in content1 with ranges2 in content2
-def replace_ranges(content1, ranges1, content2, ranges2):
+## the new lines are transformed by f
+def replace_ranges(content1, ranges1, content2, ranges2, f):
     len1 = len(ranges1)
     len2 = len(ranges2)
     if len1 != len2:
@@ -81,15 +82,22 @@ def replace_ranges(content1, ranges1, content2, ranges2):
     while i != -1:
         [start1, end1] = ranges1[i]
         [start2, end2] = ranges2[i]
-        content1[start1:end1+1] = content2[start2:end2+1]
+        new = content2[start2:end2+1]
+        content1[start1:end1+1] = map(f, new)
         i = i -1
 
+## function for transforming one line
+def transform(line):
+    line = re.sub(r'^\t', '; CHECK-NEXT: ', line);
+    line = re.sub(r'\r\n', '\n', line)
+    return line
+    
 def update_runtime_md(content1, content2):
     ranges1 = find_ranges_end_with_empty_line(content1, '.AMDGPU.runtime_metadata')
     ranges2 = find_ranges(content2, '.AMDGPU.runtime_metadata', '.section')
     #dump_ranges(content1, ranges1)
     #dump_ranges(content2, ranges2)
-    replace_ranges(content1, ranges1, content2, ranges2)
+    replace_ranges(content1, ranges1, content2, ranges2, transform)
     
 ############################################################################
 ## main program
